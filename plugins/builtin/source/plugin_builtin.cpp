@@ -19,6 +19,7 @@ namespace hex::plugin::builtin {
     void registerDataInspectorEntries();
     void registerToolEntries();
     void registerPatternLanguageFunctions();
+    void registerPatternLanguageTypes();
     void registerPatternLanguagePragmas();
     void registerPatternLanguageVisualizers();
     void registerCommandPaletteCommands();
@@ -65,6 +66,7 @@ IMHEX_PLUGIN_SUBCOMMANDS() {
     { "verbose",        "v", "Enables verbose debug logging",                hex::plugin::builtin::handleVerboseCommand          },
 
     { "open",           "o", "Open files passed as argument. [default]",     hex::plugin::builtin::handleOpenCommand             },
+    { "new",            "n", "Create a new empty file",                      hex::plugin::builtin::handleNewCommand              },
 
     { "calc",           "",  "Evaluate a mathematical expression",           hex::plugin::builtin::handleCalcCommand             },
     { "hash",           "",  "Calculate the hash of a file",                 hex::plugin::builtin::handleHashCommand             },
@@ -74,7 +76,7 @@ IMHEX_PLUGIN_SUBCOMMANDS() {
     { "pl",             "",  "Interact with the pattern language",           hex::plugin::builtin::handlePatternLanguageCommand  },
     { "hexdump",        "",  "Generate a hex dump of the provided file",     hex::plugin::builtin::handleHexdumpCommand          },
     { "demangle",       "",  "Demangle a mangled symbol",                    hex::plugin::builtin::handleDemangleCommand         },
-    { "reset-settings", "",  "Demangle a mangled symbol",                    hex::plugin::builtin::handleSettingsResetCommand    },
+    { "reset-settings", "",  "Resets all settings back to default",          hex::plugin::builtin::handleSettingsResetCommand    },
 };
 
 IMHEX_PLUGIN_SETUP("Built-in", "WerWolv", "Default ImHex functionality") {
@@ -89,12 +91,18 @@ IMHEX_PLUGIN_SETUP("Built-in", "WerWolv", "Default ImHex functionality") {
 
     registerMainMenuEntries();
 
+    addFooterItems();
+    addTitleBarButtons();
+    addToolbarItems();
+    addGlobalUIItems();
+
     registerEventHandlers();
     registerDataVisualizers();
     registerMiniMapVisualizers();
     registerDataInspectorEntries();
     registerToolEntries();
     registerPatternLanguageFunctions();
+    registerPatternLanguageTypes();
     registerPatternLanguagePragmas();
     registerPatternLanguageVisualizers();
     registerCommandPaletteCommands();
@@ -119,11 +127,6 @@ IMHEX_PLUGIN_SETUP("Built-in", "WerWolv", "Default ImHex functionality") {
     loadWorkspaces();
     addWindowDecoration();
     createWelcomeScreen();
-
-    addFooterItems();
-    addTitleBarButtons();
-    addToolbarItems();
-    addGlobalUIItems();
 
     setupOutOfBoxExperience();
 }

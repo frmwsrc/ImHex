@@ -9,8 +9,8 @@
 #elif defined(OS_MACOS)
     #include <mach/mach_types.h>
     #include <mach/message.h>
-    #include <mach/arm/kern_return.h>
-    #include <mach/arm/vm_types.h>
+    #include <mach/machine/kern_return.h>
+    #include <mach/machine/vm_types.h>
     #include <mach/vm_map.h>
     #include <mach-o/dyld_images.h>
     #include <libproc.h>
@@ -81,7 +81,7 @@ namespace hex::plugin::builtin {
             };
 
             auto read = process_vm_readv(m_processId, &local, 1, &remote, 1, 0);
-            hex::unused(read);
+            std::ignore = read;
         #endif
     }
     void ProcessMemoryProvider::writeRaw(u64 address, const void *buffer, size_t size) {
@@ -107,7 +107,7 @@ namespace hex::plugin::builtin {
             };
 
             auto write = process_vm_writev(m_processId, &local, 1, &remote, 1, 0);
-            hex::unused(write);
+            std::ignore = write;
         #endif
     }
 

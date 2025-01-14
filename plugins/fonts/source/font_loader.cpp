@@ -65,7 +65,7 @@ namespace hex::fonts {
             Font addDefaultFont() {
                 ImFontConfig config = m_config;
                 config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_Monochrome | ImGuiFreeTypeBuilderFlags_MonoHinting;
-                config.SizePixels = std::floor(ImHexApi::System::getGlobalScale()) * 13.0F;
+                config.SizePixels = std::floor(getAdjustedFontSize(ImHexApi::System::getGlobalScale() * 13.0F));
 
                 auto font = m_fontAtlas->AddFontDefault(&config);
                 m_fontSizes.emplace_back(false, config.SizePixels);
@@ -82,7 +82,7 @@ namespace hex::fonts {
                 config.FontDataOwnedByAtlas = false;
 
                 config.GlyphOffset = { offset.x, offset.y };
-                auto font = m_fontAtlas->AddFontFromMemoryTTF(storedFontData.data(), int(storedFontData.size()), fontSize, &config, !glyphRange.empty() ? glyphRange.Data : m_glyphRange.Data);
+                auto font = m_fontAtlas->AddFontFromMemoryTTF(storedFontData.data(), int(storedFontData.size()), getAdjustedFontSize(fontSize), &config, !glyphRange.empty() ? glyphRange.Data : m_glyphRange.Data);
                 m_fontSizes.emplace_back(scalable, fontSize);
 
                 m_config.MergeMode = true;
@@ -148,6 +148,7 @@ namespace hex::fonts {
                     glyphRangesBuilder.AddRanges(m_fontAtlas->GetGlyphRangesKorean());
                     glyphRangesBuilder.AddRanges(m_fontAtlas->GetGlyphRangesThai());
                     glyphRangesBuilder.AddRanges(m_fontAtlas->GetGlyphRangesVietnamese());
+                    glyphRangesBuilder.AddText("⌘⌥⌃⇧⏎⇥⌫⇪");
                 }
 
                 m_glyphRange.clear();
@@ -217,6 +218,14 @@ namespace hex::fonts {
             }
 
         private:
+            float getAdjustedFontSize(float fontSize) const {
+                // Since macOS reports half the framebuffer size that's actually available,
+                // we'll multiply all font sizes by that and then divide the global font scale
+                // by the same amount to get super crisp font rendering.
+                return fontSize * hex::ImHexApi::System::getBackingScaleFactor();
+            }
+
+        private:
             ImFontAtlas* m_fontAtlas;
             std::vector<std::pair<bool, float>> m_fontSizes;
             ImFontConfig m_config;
@@ -254,23 +263,12 @@ namespace hex::fonts {
         }
 
         float getFontSize() {
-            float fontSize = ImHexApi::Fonts::DefaultFontSize;
+            const auto pixelPerfectFont = ContentRegistry::Settings::read<bool>("hex.builtin.setting.font", "hex.builtin.setting.font.pixel_perfect_default_font", true);
 
-            if (auto scaling = ImHexApi::System::getGlobalScale(); u32(scaling) * 10 == u32(scaling * 10))
-                fontSize *= scaling;
+            if (pixelPerfectFont)
+                return 13.0F * ImHexApi::System::getGlobalScale();
             else
-                fontSize *= scaling * 0.75F;
-
-            // Fall back to the default font if the global scale is 0
-            if (fontSize == 0.0F)
-                fontSize = ImHexApi::Fonts::DefaultFontSize;
-
-            // If a custom font is used, adjust the font size
-            if (!ImHexApi::Fonts::getCustomFontPath().empty()) {
-                fontSize = float(ContentRegistry::Settings::read<int>("hex.builtin.setting.font", "hex.builtin.setting.font.font_size", 13)) * ImHexApi::System::getGlobalScale();
-            }
-
-            return fontSize;
+                return float(ContentRegistry::Settings::read<int>("hex.builtin.setting.font", "hex.builtin.setting.font.font_size", 13)) * ImHexApi::System::getGlobalScale();
         }
 
     }
@@ -321,7 +319,7 @@ namespace hex::fonts {
             if (pixelPerfectFont)
                 defaultFont = fontAtlas.addDefaultFont();
             else
-                defaultFont = fontAtlas.addFontFromRomFs("fonts/firacode.ttf", fontSize * 1.1, true, ImVec2());
+                defaultFont = fontAtlas.addFontFromRomFs("fonts/JetBrainsMono.ttf", fontSize, true, ImVec2());
 
             if (!fontAtlas.build()) {
                 log::fatal("Failed to load default font!");

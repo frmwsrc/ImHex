@@ -28,7 +28,7 @@
 #include <wolv/io/file.hpp>
 #include <wolv/io/fs.hpp>
 
-#include <fonts/codicons_font.h>
+#include <fonts/vscode_icons.hpp>
 
 #include <content/recent.hpp>
 
@@ -192,7 +192,7 @@ namespace hex::plugin::builtin {
                     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5_scaled);
 
                     ImGui::Image(s_nightlyTexture, s_nightlyTexture.getSize());
-                    ImGuiExt::InfoTooltip("hex.builtin.welcome.nightly_build"_lang);
+                    ImGuiExt::InfoTooltip(hex::format("{0}\n\nCommit: {1}@{2}", "hex.builtin.welcome.nightly_build"_lang, ImHexApi::System::getCommitBranch(), ImHexApi::System::getCommitHash(true)).c_str());
 
                     ImGui::SetCursorPos(cursor);
                 }
@@ -254,7 +254,10 @@ namespace hex::plugin::builtin {
 
                     // Draw recent entries
                     ImGui::Dummy({});
-                    recent::draw();
+
+                    #if !defined(OS_WEB)
+                        recent::draw();
+                    #endif
 
                     ImGui::TableNextRow(ImGuiTableRowFlags_None, ImGui::GetTextLineHeightWithSpacing() * 6);
                     ImGui::TableNextColumn();
@@ -364,8 +367,7 @@ namespace hex::plugin::builtin {
             if (ImGuiExt::DimmedIconButton(ICON_VS_CLOSE, ImGuiExt::GetCustomColorVec4(ImGuiCustomCol_ToolbarRed))) {
                 auto provider = ImHexApi::Provider::createProvider("hex.builtin.provider.null");
                 if (provider != nullptr)
-                    if (provider->open())
-                        EventProviderOpened::post(provider);
+                    std::ignore = provider->open();
             }
         }
 
@@ -401,7 +403,7 @@ namespace hex::plugin::builtin {
                             static bool hovered = false;
                             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, hovered ? 1.0F : 0.3F);
                             {
-                                const ImVec2 windowSize = scaled({ 150, 60 });
+                                const ImVec2 windowSize = { 150_scaled, ImGui::GetTextLineHeightWithSpacing() * 3.5F };
                                 ImGui::SetCursorScreenPos(ImGui::GetWindowPos() + ImGui::GetWindowSize() - windowSize - ImGui::GetStyle().WindowPadding);
                                 ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
                                 if (ImGuiExt::BeginSubWindow("hex.builtin.welcome.header.quick_settings"_lang, nullptr, windowSize, ImGuiChildFlags_AutoResizeY)) {
@@ -528,7 +530,7 @@ namespace hex::plugin::builtin {
             };
 
             ThemeManager::changeTheme(theme);
-            s_bannerTexture = changeTextureSvg(hex::format("assets/{}/banner.svg", ThemeManager::getImageTheme()), 300_scaled);
+            s_bannerTexture = changeTextureSvg(hex::format("assets/{}/banner.svg", ThemeManager::getImageTheme()), 280_scaled);
             s_nightlyTexture = changeTextureSvg(hex::format("assets/{}/nightly.svg", "common"), 35_scaled);
             s_backdropTexture = changeTexture(hex::format("assets/{}/backdrop.png", ThemeManager::getImageTheme()));
 
@@ -539,7 +541,7 @@ namespace hex::plugin::builtin {
 
         // Clear project context if we go back to the welcome screen
         EventProviderChanged::subscribe([](const hex::prv::Provider *oldProvider, const hex::prv::Provider *newProvider) {
-            hex::unused(oldProvider);
+            std::ignore = oldProvider;
             if (newProvider == nullptr) {
                 ProjectFile::clearPath();
                 RequestUpdateWindowTitle::post();
