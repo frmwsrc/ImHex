@@ -1,16 +1,19 @@
-#include <hex/api/content_registry.hpp>
-#include <hex/api/theme_manager.hpp>
-
 #include "window.hpp"
-
 
 #if defined(OS_WINDOWS)
 
     #include "messaging.hpp"
 
+    #include <hex/api/content_registry.hpp>
+    #include <hex/api/theme_manager.hpp>
+
     #include <hex/helpers/utils.hpp>
     #include <hex/helpers/logger.hpp>
     #include <hex/helpers/default_paths.hpp>
+
+    #include <hex/api/events/events_gui.hpp>
+    #include <hex/api/events/events_lifecycle.hpp>
+    #include <hex/api/events/requests_gui.hpp>
 
     #include <imgui.h>
     #include <imgui_internal.h>
@@ -28,6 +31,7 @@
     #include <fcntl.h>
     #include <shellapi.h>
     #include <timeapi.h>
+    #include <VersionHelpers.h>
 
 namespace hex {
 
@@ -67,30 +71,12 @@ namespace hex {
                 // Handle opening files in existing instance
 
                 auto message = reinterpret_cast<COPYDATASTRUCT *>(lParam);
-                if (message == nullptr) break;
-
-                ssize_t nullIndex = -1;
-
-                auto messageData = static_cast<const char*>(message->lpData);
-                size_t messageSize = message->cbData;
-
-                for (size_t i = 0; i < messageSize; i++) {
-                    if (messageData[i] == '\0') {
-                        nullIndex = i;
-                        break;
-                    }
-                }
-
-                if (nullIndex == -1) {
-                    log::warn("Received invalid forwarded event");
+                if (message == nullptr)
                     break;
-                }
 
-                std::string eventName(messageData, nullIndex);
-
-                std::vector<u8> eventData(messageData + nullIndex + 1, messageData + messageSize);
-
-                hex::messaging::messageReceived(eventName, eventData);
+                const auto data = reinterpret_cast<const u8*>(message->lpData);
+                const auto size = message->cbData;
+                EventNativeMessageReceived::post(std::vector<u8>(data, data + size));
                 break;
             }
             case WM_SETTINGCHANGE: {
@@ -389,8 +375,7 @@ namespace hex {
 
         // Windows versions before Windows 10 have issues with transparent framebuffers
         // causing the entire window to be slightly transparent ignoring all configurations
-        OSVERSIONINFOA versionInfo = { };
-        if (::GetVersionExA(&versionInfo) && versionInfo.dwMajorVersion >= 10) {
+        if (::IsWindows10OrGreater()) {
             glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
         } else {
             glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FALSE);

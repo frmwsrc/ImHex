@@ -1,5 +1,6 @@
 #include <hex/api/content_registry.hpp>
 #include <hex/api/shortcut_manager.hpp>
+#include <hex/api/events/requests_provider.hpp>
 
 #include <hex/helpers/fs.hpp>
 #include <hex/helpers/logger.hpp>
@@ -223,6 +224,8 @@ namespace hex {
                             log::error("Failed to load setting [{} / {}]: {}", unlocalizedCategory.get(), unlocalizedName.get(), e.what());
                         }
                     });
+
+                    runOnChangeHandlers(unlocalizedCategory, unlocalizedName, getSetting(unlocalizedCategory, unlocalizedName, entry->widget->store()));
                 }
 
                 return entry->widget.get();
@@ -402,7 +405,7 @@ namespace hex {
             bool DropDown::draw(const std::string &name) {
                 auto preview = "";
                 if (static_cast<size_t>(m_value) < m_items.size())
-                    preview = m_items[m_value].c_str();
+                    preview = m_items[m_value].get().c_str();
 
                 bool changed = false;
                 if (ImGui::BeginCombo(name.c_str(), Lang(preview))) {

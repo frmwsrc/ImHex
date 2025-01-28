@@ -1,8 +1,9 @@
 #include <hex/api/content_registry.hpp>
-#include <hex/api/event_manager.hpp>
 #include <hex/api/shortcut_manager.hpp>
 #include <hex/api/task_manager.hpp>
 #include <hex/api/project_file_manager.hpp>
+#include <hex/api/events/events_gui.hpp>
+#include <hex/api/events/requests_gui.hpp>
 
 #include <hex/ui/view.hpp>
 #include <hex/helpers/utils.hpp>
@@ -14,6 +15,7 @@
 
 #include <fonts/vscode_icons.hpp>
 #include <hex/api/tutorial_manager.hpp>
+#include <hex/helpers/auto_reset.hpp>
 #include <romfs/romfs.hpp>
 #include <wolv/utils/guards.hpp>
 
@@ -26,7 +28,7 @@ namespace hex::plugin::builtin {
 
         std::string s_windowTitle, s_windowTitleFull;
         u32 s_searchBarPosition = 0;
-        ImGuiExt::Texture s_logoTexture;
+        AutoReset<ImGuiExt::Texture> s_logoTexture;
         bool s_showSearchBar = true;
         bool s_displayShortcutHighlights = true;
         bool s_useNativeMenuBar = false;
@@ -384,7 +386,7 @@ namespace hex::plugin::builtin {
                 if (ImHexApi::System::isBorderlessWindowModeEnabled()) {
                     #if defined(OS_WINDOWS)
                         ImGui::SetCursorPosX(5_scaled);
-                        ImGui::Image(s_logoTexture, s_logoTexture.getSize() * u32(1_scaled));
+                        ImGui::Image(*s_logoTexture, s_logoTexture->getSize() * u32(1_scaled));
                         ImGui::SetCursorPosX(5_scaled);
                         ImGui::InvisibleButton("##logo", ImVec2(menuBarHeight, menuBarHeight));
                         if (ImGui::IsItemHovered() && ImGui::IsAnyMouseDown())
@@ -399,18 +401,18 @@ namespace hex::plugin::builtin {
                     bool maximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
 
                     ImGui::BeginDisabled(!maximized);
-                    if (ImGui::MenuItem(ICON_VS_CHROME_RESTORE " Restore"))  glfwRestoreWindow(window);
+                    if (ImGui::MenuItemEx("Restore", ICON_VS_CHROME_RESTORE)) glfwRestoreWindow(window);
                     ImGui::EndDisabled();
 
-                    if (ImGui::MenuItem(ICON_VS_CHROME_MINIMIZE " Minimize")) glfwIconifyWindow(window);
+                    if (ImGui::MenuItemEx("Minimize", ICON_VS_CHROME_MINIMIZE)) glfwIconifyWindow(window);
 
                     ImGui::BeginDisabled(maximized);
-                    if (ImGui::MenuItem(ICON_VS_CHROME_MAXIMIZE " Maximize")) glfwMaximizeWindow(window);
+                    if (ImGui::MenuItemEx("Maximize", ICON_VS_CHROME_MAXIMIZE)) glfwMaximizeWindow(window);
                     ImGui::EndDisabled();
 
                     ImGui::Separator();
 
-                    if (ImGui::MenuItem(ICON_VS_CHROME_CLOSE " Close"))    ImHexApi::System::closeImHex();
+                    if (ImGui::MenuItemEx("Close", ICON_VS_CHROME_CLOSE)) ImHexApi::System::closeImHex();
 
                     ImGui::EndPopup();
                 }

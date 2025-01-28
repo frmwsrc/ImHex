@@ -1,6 +1,13 @@
 #include <hex/api/imhex_api.hpp>
 
-#include <hex/api/event_manager.hpp>
+#include <hex/api/events/events_provider.hpp>
+#include <hex/api/events/events_lifecycle.hpp>
+#include <hex/api/events/events_gui.hpp>
+#include <hex/api/events/requests_interaction.hpp>
+#include <hex/api/events/requests_lifecycle.hpp>
+#include <hex/api/events/requests_provider.hpp>
+#include <hex/api/events/requests_gui.hpp>
+
 #include <hex/api/task_manager.hpp>
 #include <hex/helpers/fmt.hpp>
 #include <hex/helpers/utils.hpp>
@@ -567,13 +574,22 @@ namespace hex {
                 return s_windowResizable;
             }
 
-            static std::vector<hex::impl::AutoResetBase*> s_autoResetObjects;
+            static auto& getAutoResetObjects() {
+                static std::set<hex::impl::AutoResetBase*> autoResetObjects;
+
+                return autoResetObjects;
+            }
+
             void addAutoResetObject(hex::impl::AutoResetBase *object) {
-                s_autoResetObjects.emplace_back(object);
+                getAutoResetObjects().insert(object);
+            }
+
+            void removeAutoResetObject(hex::impl::AutoResetBase *object) {
+                getAutoResetObjects().erase(object);
             }
 
             void cleanup() {
-                for (const auto &object : s_autoResetObjects)
+                for (const auto &object : getAutoResetObjects())
                     object->reset();
             }
 
@@ -632,11 +648,6 @@ namespace hex {
                 }
             #elif defined(OS_WEB)
                 return 1.0F;
-                /*
-                return EM_ASM_INT({
-                    return window.devicePixelRatio;
-                });
-                */
             #else
                 return 1.0F;
             #endif
@@ -993,11 +1004,6 @@ namespace hex {
                 return *s_fonts;
             }
 
-            static AutoReset<std::fs::path> s_customFontPath;
-            void setCustomFontPath(const std::fs::path &path) {
-                s_customFontPath = path;
-            }
-
             static float s_fontSize = DefaultFontSize;
             void setFontSize(float size) {
                 s_fontSize = size;
@@ -1015,6 +1021,10 @@ namespace hex {
                 s_italicFont = italic;
             }
 
+            static AutoReset<std::map<UnlocalizedString, ImFont*>> s_fontDefinitions;
+            std::map<UnlocalizedString, ImFont*>& getFontDefinitions() {
+                return *s_fontDefinitions;
+            }
 
         }
 
@@ -1079,16 +1089,20 @@ namespace hex {
             });
         }
 
-        const std::fs::path& getCustomFontPath() {
-            return impl::s_customFontPath;
-        }
-
         float getFontSize() {
             return impl::s_fontSize;
         }
 
         ImFontAtlas* getFontAtlas() {
             return impl::s_fontAtlas;
+        }
+
+        void registerFont(const UnlocalizedString &fontName) {
+            (*impl::s_fontDefinitions)[fontName] = nullptr;
+        }
+
+        ImFont* getFont(const UnlocalizedString &fontName) {
+            return (*impl::s_fontDefinitions)[fontName];
         }
 
         ImFont* Bold() {

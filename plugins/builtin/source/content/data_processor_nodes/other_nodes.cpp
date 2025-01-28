@@ -1,7 +1,6 @@
 #include <hex/api/imhex_api.hpp>
 #include <hex/api/content_registry.hpp>
 #include <hex/api/achievement_manager.hpp>
-#include <hex/api/event_manager.hpp>
 
 #include <hex/providers/provider.hpp>
 #include <hex/data_processor/node.hpp>
@@ -291,6 +290,10 @@ namespace hex::plugin::builtin {
         NodeVisualizerImage() : Node("hex.builtin.nodes.visualizer.image.header", { dp::Attribute(dp::Attribute::IOType::In, dp::Attribute::Type::Buffer, "hex.builtin.nodes.common.input") }) { }
 
         void drawNode() override {
+            if (!m_texture.isValid() && !m_data.empty()) {
+                m_texture = ImGuiExt::Texture::fromImage(m_data.data(), m_data.size(), ImGuiExt::Texture::Filter::Nearest);
+            }
+
             ImGui::Image(m_texture, scaled(ImVec2(m_texture.getAspectRatio() * 200, 200)));
             if (ImGui::IsItemHovered() && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
                 ImGui::BeginTooltip();
@@ -302,10 +305,12 @@ namespace hex::plugin::builtin {
         void process() override {
             const auto &rawData = this->getBufferOnInput(0);
 
-            m_texture = ImGuiExt::Texture::fromImage(rawData.data(), rawData.size(), ImGuiExt::Texture::Filter::Nearest);
+            m_data = rawData;
+            m_texture.reset();
         }
 
     private:
+        std::vector<u8> m_data;
         ImGuiExt::Texture m_texture;
     };
 
@@ -314,6 +319,10 @@ namespace hex::plugin::builtin {
         NodeVisualizerImageRGBA() : Node("hex.builtin.nodes.visualizer.image_rgba.header", { dp::Attribute(dp::Attribute::IOType::In, dp::Attribute::Type::Buffer, "hex.builtin.nodes.common.input"), dp::Attribute(dp::Attribute::IOType::In, dp::Attribute::Type::Integer, "hex.builtin.nodes.common.width"), dp::Attribute(dp::Attribute::IOType::In, dp::Attribute::Type::Integer, "hex.builtin.nodes.common.height") }) { }
 
         void drawNode() override {
+            if (!m_texture.isValid() && !m_data.empty()) {
+                m_texture = ImGuiExt::Texture::fromImage(m_data.data(), m_data.size(), ImGuiExt::Texture::Filter::Nearest);
+            }
+
             ImGui::Image(m_texture, scaled(ImVec2(m_texture.getAspectRatio() * 200, 200)));
             if (ImGui::IsItemHovered() && ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
                 ImGui::BeginTooltip();
@@ -323,7 +332,7 @@ namespace hex::plugin::builtin {
         }
 
         void process() override {
-            m_texture = { };
+            m_texture.reset();
 
             const auto &rawData = this->getBufferOnInput(0);
             const auto &width = this->getIntegerOnInput(1);
@@ -333,10 +342,12 @@ namespace hex::plugin::builtin {
             if (requiredBytes > rawData.size())
                 throwNodeError(hex::format("Image requires at least {} bytes of data, but only {} bytes are available", requiredBytes, rawData.size()));
 
-            m_texture = ImGuiExt::Texture::fromBitmap(rawData.data(), rawData.size(), width, height, ImGuiExt::Texture::Filter::Nearest);
+            m_data = rawData;
+            m_texture.reset();
         }
 
     private:
+        std::vector<u8> m_data;
         ImGuiExt::Texture m_texture;
     };
 

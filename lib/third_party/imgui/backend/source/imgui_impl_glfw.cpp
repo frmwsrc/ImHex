@@ -122,6 +122,11 @@
 #include <unistd.h>             // for usleep()
 #endif
 
+#ifdef __linux__
+#include <string_view>
+#include <cstdlib>
+#endif
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -380,17 +385,33 @@ ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int keycode, int scancode)
 
 // X11 does not include current pressed/released modifier key in 'mods' flags submitted by GLFW
 // See https://github.com/ocornut/imgui/issues/6034 and https://github.com/glfw/glfw/issues/1630
-static void ImGui_ImplGlfw_UpdateKeyModifiers(int mods)
+static void ImGui_ImplGlfw_UpdateKeyModifiers(GLFWwindow* window, int mods)
 {
+    // IMHEX PATCH BEGIN
     ImGuiIO& io = ImGui::GetIO();
 
-    // IMHEX PATCH BEGIN
-    // The original version of this caused the CTRL key to sometimes get stuck when pressing ALT GR, SHIFT and Enter
-    // together in some ways
-    io.AddKeyEvent(ImGuiMod_Ctrl,  (mods & GLFW_MOD_CONTROL) != 0);
-    io.AddKeyEvent(ImGuiMod_Shift, (mods & GLFW_MOD_SHIFT)   != 0);
-    io.AddKeyEvent(ImGuiMod_Alt,   (mods & GLFW_MOD_ALT)     != 0);
-    io.AddKeyEvent(ImGuiMod_Super, (mods & GLFW_MOD_SUPER)   != 0);
+#ifdef __linux__
+    static bool isX11 = [] {
+        const auto sessionType = std::getenv("XDG_SESSION_TYPE");
+        if (sessionType == nullptr)
+            return false;
+
+        return std::string_view(sessionType) == "x11";
+    }();
+
+    if (isX11) {
+        io.AddKeyEvent(ImGuiMod_Ctrl,  (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS));
+        io.AddKeyEvent(ImGuiMod_Shift, (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)   == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT)   == GLFW_PRESS));
+        io.AddKeyEvent(ImGuiMod_Alt,   (glfwGetKey(window, GLFW_KEY_LEFT_ALT)     == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_RIGHT_ALT)     == GLFW_PRESS));
+        io.AddKeyEvent(ImGuiMod_Super, (glfwGetKey(window, GLFW_KEY_LEFT_SUPER)   == GLFW_PRESS) || (glfwGetKey(window, GLFW_KEY_RIGHT_SUPER)   == GLFW_PRESS));
+    } else
+#endif
+    {
+        io.AddKeyEvent(ImGuiMod_Ctrl,  (mods & GLFW_MOD_CONTROL) != 0);
+        io.AddKeyEvent(ImGuiMod_Shift, (mods & GLFW_MOD_SHIFT)   != 0);
+        io.AddKeyEvent(ImGuiMod_Alt,   (mods & GLFW_MOD_ALT)     != 0);
+        io.AddKeyEvent(ImGuiMod_Super, (mods & GLFW_MOD_SUPER)   != 0);
+    }
     // IMHEX PATCH END
 }
 
@@ -410,7 +431,7 @@ void ImGui_ImplGlfw_MouseButtonCallback(GLFWwindow* window, int button, int acti
     if (bd->MouseIgnoreButtonUp && action == GLFW_RELEASE)
         return;
 
-    ImGui_ImplGlfw_UpdateKeyModifiers(mods);
+    ImGui_ImplGlfw_UpdateKeyModifiers(window, mods);
 
     ImGuiIO& io = ImGui::GetIO();
     if (button >= 0 && button < ImGuiMouseButton_COUNT)
@@ -475,7 +496,7 @@ void ImGui_ImplGlfw_KeyCallback(GLFWwindow* window, int keycode, int scancode, i
     if (action != GLFW_PRESS && action != GLFW_RELEASE)
         return;
 
-    ImGui_ImplGlfw_UpdateKeyModifiers(mods);
+    ImGui_ImplGlfw_UpdateKeyModifiers(window, mods);
 
     if (keycode >= 0 && keycode < IM_ARRAYSIZE(bd->KeyOwnerWindows))
         bd->KeyOwnerWindows[keycode] = (action == GLFW_PRESS) ? window : nullptr;

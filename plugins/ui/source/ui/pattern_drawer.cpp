@@ -256,7 +256,7 @@ namespace hex::ui {
                     return;
 
                 if (matchesFilter(m_filter.path, treePath, false)) {
-                    if (pattern.getValue() == m_filter.value)
+                    if (!m_filter.value.has_value() || pattern.getValue() == m_filter.value)
                         m_filteredPatterns.push_back(&pattern);
                 }
             });
@@ -983,6 +983,15 @@ namespace hex::ui {
             drawCommentColumn(pattern);
         }
     }
+
+    void PatternDrawer::visit(pl::ptrn::PatternError& pattern) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiExt::GetCustomColorVec4(ImGuiCustomCol_LoggerError));
+        createDefaultEntry(pattern);
+        drawValueColumn(pattern);
+        drawCommentColumn(pattern);
+        ImGui::PopStyleColor();
+    }
+
 
     void PatternDrawer::visit(pl::ptrn::Pattern& pattern) {
         createDefaultEntry(pattern);

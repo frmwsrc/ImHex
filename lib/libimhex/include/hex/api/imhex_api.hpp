@@ -444,6 +444,8 @@ namespace hex {
                 bool isWindowResizable();
 
                 void addAutoResetObject(hex::impl::AutoResetBase *object);
+                void removeAutoResetObject(hex::impl::AutoResetBase *object);
+
                 void cleanup();
 
             }
@@ -753,11 +755,8 @@ namespace hex {
 
                 const std::vector<Font>& getFonts();
 
-                void setCustomFontPath(const std::fs::path &path);
-                void setFontSize(float size);
-                void setFontAtlas(ImFontAtlas *fontAtlas);
+                std::map<UnlocalizedString, ImFont*>& getFontDefinitions();
 
-                void setFonts(ImFont *bold, ImFont *italic);
             }
 
             GlyphRange glyph(const char *glyph);
@@ -770,26 +769,8 @@ namespace hex {
 
             constexpr static float DefaultFontSize = 13.0;
 
-            ImFont* Bold();
-            ImFont* Italic();
-
-            /**
-             * @brief Gets the current custom font path
-             * @return The current custom font path
-             */
-            const std::filesystem::path& getCustomFontPath();
-
-            /**
-             * @brief Gets the current font size
-             * @return The current font size
-             */
-            float getFontSize();
-
-            /**
-             * @brief Gets the current font atlas
-             * @return Current font atlas
-             */
-            ImFontAtlas* getFontAtlas();
+            void registerFont(const UnlocalizedString &fontName);
+            ImFont* getFont(const UnlocalizedString &fontName);
 
         }
 

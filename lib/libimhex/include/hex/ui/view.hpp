@@ -8,7 +8,6 @@
 
 #include <hex/api/imhex_api.hpp>
 #include <hex/api/shortcut_manager.hpp>
-#include <hex/api/event_manager.hpp>
 #include <hex/api/localization_manager.hpp>
 
 #include <hex/providers/provider.hpp>
@@ -175,7 +174,7 @@ namespace hex {
 
                 ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5F, 0.5F));
                 ImGui::SetNextWindowSizeConstraints(this->getMinSize(), this->getMaxSize());
-                if (ImGui::BeginPopupModal(View::toWindowName(this->getUnlocalizedName()).c_str(), this->hasCloseButton() ? &this->getWindowOpenState() : nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | this->getWindowFlags())) {
+                if (ImGui::BeginPopupModal(View::toWindowName(this->getUnlocalizedName()).c_str(), this->hasCloseButton() ? &this->getWindowOpenState() : nullptr, ImGuiWindowFlags_NoCollapse | this->getWindowFlags())) {
                     this->drawContent();
 
                     ImGui::EndPopup();
